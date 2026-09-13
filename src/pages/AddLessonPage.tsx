@@ -24,6 +24,9 @@ export default function AddLessonPage() {
   const [rawText, setRawText] = useState('');
   const [rows, setRows] = useState<WordRow[]>([emptyRow()]);
   const [saving, setSaving] = useState(false);
+  const [aiLoadingIndices, setAiLoadingIndices] = useState<Set<number>>(new Set());
+  const [aiFillingAll, setAiFillingAll] = useState(false);
+  const [aiError, setAiError] = useState('');
 
   function updateRow(index: number, patch: Partial<WordRow>) {
     setRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
@@ -48,6 +51,64 @@ export default function AddLessonPage() {
       const isPrevEmpty = prev.every((r) => Object.values(r).every((v) => !v.trim()));
       return isPrevEmpty ? parsedRows : [...prev, ...parsedRows];
     });
+  }
+
+  async function fetchWordInfo(simplified: string) {
+    const res = await fetch('/api/generate-word-info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ simplified }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || `요청 실패 (${res.status})`);
+    }
+    return data as {
+      pinyin?: string;
+      meaningKr?: string;
+      exampleCn?: string;
+      examplePinyin?: string;
+      exampleKr?: string;
+    };
+  }
+
+  async function handleAiFillRow(index: number) {
+    const row = rows[index];
+    if (!row.simplified.trim()) return;
+    setAiError('');
+    setAiLoadingIndices((prev) => new Set(prev).add(index));
+    try {
+      const info = await fetchWordInfo(row.simplified.trim());
+      updateRow(index, {
+        pinyin: info.pinyin || row.pinyin,
+        meaningKr: info.meaningKr || row.meaningKr,
+        exampleCn: info.exampleCn || row.exampleCn,
+        examplePinyin: info.examplePinyin || row.examplePinyin,
+        exampleKr: info.exampleKr || row.exampleKr,
+      });
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAiLoadingIndices((prev) => {
+        const next = new Set(prev);
+        next.delete(index);
+        return next;
+      });
+    }
+  }
+
+  async function handleAiFillAll() {
+    setAiFillingAll(true);
+    setAiError('');
+    try {
+      for (let i = 0; i < rows.length; i++) {
+        if (!rows[i].simplified.trim()) continue;
+        if (rows[i].pinyin.trim() && rows[i].meaningKr.trim()) continue;
+        await handleAiFillRow(i);
+      }
+    } finally {
+      setAiFillingAll(false);
+    }
   }
 
   async function handleSave() {
@@ -131,17 +192,40 @@ export default function AddLessonPage() {
         ↓ 위 텍스트 줄마다 단어 입력칸으로 자동 생성
       </button>
 
-      <h2 className="mb-2 text-lg font-semibold">단어 입력</h2>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-lg font-semibold">단어 입력</h2>
+        <button
+          type="button"
+          onClick={handleAiFillAll}
+          disabled={aiFillingAll}
+          className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+        >
+          {aiFillingAll ? '🤖 생성 중...' : '🤖 전체 AI 자동완성'}
+        </button>
+      </div>
+      {aiError && (
+        <p className="mb-3 rounded-lg bg-red-50 p-2 text-xs text-red-600">{aiError}</p>
+      )}
       <div className="space-y-3">
         {rows.map((row, i) => (
           <div key={i} className="rounded-xl border border-gray-200 p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-sm font-medium text-gray-500">단어 {i + 1}</span>
-              {rows.length > 1 && (
-                <button type="button" onClick={() => removeRow(i)} className="text-xs text-red-500">
-                  삭제
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleAiFillRow(i)}
+                  disabled={aiLoadingIndices.has(i) || !row.simplified.trim()}
+                  className="text-xs text-red-600 disabled:opacity-40"
+                >
+                  {aiLoadingIndices.has(i) ? '🤖 생성 중...' : '🤖 AI로 채우기'}
                 </button>
-              )}
+                {rows.length > 1 && (
+                  <button type="button" onClick={() => removeRow(i)} className="text-xs text-gray-400">
+                    삭제
+                  </button>
+                )}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <input
