@@ -37,6 +37,19 @@ export default function AddLessonPage() {
     setRows((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function parseRawTextToRows() {
+    const lines = rawText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (lines.length === 0) return;
+    const parsedRows = lines.map((line) => ({ ...emptyRow(), simplified: line }));
+    setRows((prev) => {
+      const isPrevEmpty = prev.every((r) => Object.values(r).every((v) => !v.trim()));
+      return isPrevEmpty ? parsedRows : [...prev, ...parsedRows];
+    });
+  }
+
   async function handleSave() {
     const validRows = rows.filter((r) => r.simplified.trim() && r.meaningKr.trim());
     if (validRows.length === 0) {
@@ -99,16 +112,24 @@ export default function AddLessonPage() {
         </label>
       </div>
 
-      <label className="mb-4 block text-sm">
+      <label className="block text-sm">
         선생님이 준 원본 텍스트 (선택, 참고용으로 그대로 저장)
         <textarea
           value={rawText}
           onChange={(e) => setRawText(e.target.value)}
-          rows={3}
-          placeholder="여기에 그대로 붙여넣기 하세요"
+          rows={5}
+          placeholder="여기에 그대로 붙여넣기 하세요 (한 줄에 한 단어씩)"
           className="mt-1 w-full rounded-lg border border-gray-300 p-2"
         />
       </label>
+      <button
+        type="button"
+        onClick={parseRawTextToRows}
+        disabled={!rawText.trim()}
+        className="mb-4 mt-2 w-full rounded-lg border border-red-200 bg-red-50 py-2 text-sm text-red-600 disabled:opacity-40"
+      >
+        ↓ 위 텍스트 줄마다 단어 입력칸으로 자동 생성
+      </button>
 
       <h2 className="mb-2 text-lg font-semibold">단어 입력</h2>
       <div className="space-y-3">
