@@ -3,9 +3,23 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { logDebug } from './utils/debugLog'
+import { getLegacyCounts, isMigrationDone } from './migrateLocalData'
 
 window.addEventListener('error', (e) => logDebug('에러: ' + e.message))
 window.addEventListener('unhandledrejection', (e) => logDebug('에러: ' + e.reason))
+
+logDebug('origin: ' + location.origin)
+logDebug('migrated_v1: ' + localStorage.getItem('migrated_v1'))
+if ('databases' in indexedDB) {
+  indexedDB
+    .databases()
+    .then((dbs) => logDebug('indexedDB dbs: ' + JSON.stringify(dbs.map((d) => d.name))))
+    .catch((err) => logDebug('indexedDB.databases 에러: ' + err))
+}
+getLegacyCounts()
+  .then((c) => logDebug('legacy counts: ' + JSON.stringify(c)))
+  .catch((err) => logDebug('legacy counts 에러: ' + err))
+logDebug('isMigrationDone(): ' + isMigrationDone())
 
 // One-time cleanup: a stale service worker from an earlier deploy can keep
 // serving an old cached JS bundle indefinitely. IndexedDB (legacy vocab data,
