@@ -55,24 +55,28 @@ export default async function handler(req, res) {
 
 이미지에서 읽을 수 있는 단어를 빠짐없이 전부 포함해줘.`;
 
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
+  const requestBody = JSON.stringify({
+    contents: [
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: prompt },
-                { inline_data: { mime_type: mimeType || 'image/jpeg', data: imageBase64 } },
-              ],
-            },
-          ],
-        }),
+        parts: [
+          { text: prompt },
+          { inline_data: { mime_type: mimeType || 'image/jpeg', data: imageBase64 } },
+        ],
       },
-    );
+    ],
+  });
+
+  const maxAttempts = 3;
+  let response;
+  try {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: requestBody },
+      );
+      if (response.ok || response.status !== 503 || attempt === maxAttempts) break;
+      await new Promise((r) => setTimeout(r, attempt * 1000));
+    }
 
     if (!response.ok) {
       const errText = await response.text();
