@@ -4,7 +4,6 @@ import { useAuth } from '../auth/AuthContext';
 import { deleteLesson, deleteWord, useLesson, updateWord, useWords } from '../store';
 import PinyinText from '../components/PinyinText';
 import { isLikelyValidSimplified } from '../utils/hanzi';
-import { fetchWordInfo } from '../utils/aiWordInfo';
 import type { Word } from '../types';
 
 interface EditDraft {
@@ -41,55 +40,28 @@ export default function LessonDetailPage() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<EditDraft | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState('');
+  const [formError, setFormError] = useState('');
 
   function startEdit(w: Word) {
     setEditingId(w.id!);
     setDraft(toDraft(w));
-    setAiError('');
+    setFormError('');
   }
 
   function cancelEdit() {
     setEditingId(null);
     setDraft(null);
-    setAiError('');
-  }
-
-  async function handleAiRegenerate() {
-    if (!draft) return;
-    setAiError('');
-    setAiLoading(true);
-    try {
-      const info = await fetchWordInfo(draft.simplified.trim());
-      setDraft((prev) =>
-        prev
-          ? {
-              ...prev,
-              simplified: info.simplified || prev.simplified,
-              pinyin: info.pinyin || prev.pinyin,
-              meaningKr: info.meaningKr || prev.meaningKr,
-              exampleCn: info.exampleCn || prev.exampleCn,
-              examplePinyin: info.examplePinyin || prev.examplePinyin,
-              exampleKr: info.exampleKr || prev.exampleKr,
-            }
-          : prev,
-      );
-    } catch (err) {
-      setAiError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setAiLoading(false);
-    }
+    setFormError('');
   }
 
   async function handleSaveEdit() {
     if (!draft || editingId === null) return;
     if (!draft.simplified.trim() || !draft.meaningKr.trim()) {
-      setAiError('간체와 뜻은 반드시 입력해야 합니다.');
+      setFormError('간체와 뜻은 반드시 입력해야 합니다.');
       return;
     }
     if (!isLikelyValidSimplified(draft.simplified)) {
-      setAiError('간체 자리에 한글이 들어있는 것 같아요. "AI로 재생성"을 눌러 올바른 간체로 고쳐주세요.');
+      setFormError('간체 자리에 한글이 들어있는 것 같아요. 올바른 중국어 간체로 직접 고쳐주세요.');
       return;
     }
     await updateWord(uid, editingId, {
@@ -167,7 +139,7 @@ export default function LessonDetailPage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {aiError && <p className="rounded-lg bg-red-50 p-2 text-xs text-red-600">{aiError}</p>}
+                  {formError && <p className="rounded-lg bg-red-50 p-2 text-xs text-red-600">{formError}</p>}
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       placeholder="간체"
@@ -213,14 +185,6 @@ export default function LessonDetailPage() {
                     className="w-full rounded-lg border border-gray-300 p-2"
                   />
                   <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={handleAiRegenerate}
-                      disabled={aiLoading || !draft?.simplified.trim()}
-                      className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-medium text-white disabled:opacity-50"
-                    >
-                      {aiLoading ? '🤖 생성 중...' : '🤖 AI로 재생성'}
-                    </button>
                     <button
                       type="button"
                       onClick={handleSaveEdit}

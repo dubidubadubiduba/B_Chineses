@@ -4,7 +4,6 @@ import { useAuth } from '../auth/AuthContext';
 import { addLesson, bulkAddWords } from '../store';
 import { todayStr } from '../utils/srs';
 import { isLikelyValidSimplified } from '../utils/hanzi';
-import { fetchWordInfo } from '../utils/aiWordInfo';
 
 interface WordRow {
   simplified: string;
@@ -29,9 +28,6 @@ export default function AddLessonPage() {
   const [rawText, setRawText] = useState('');
   const [rows, setRows] = useState<WordRow[]>([emptyRow()]);
   const [saving, setSaving] = useState(false);
-  const [aiLoadingIndices, setAiLoadingIndices] = useState<Set<number>>(new Set());
-  const [aiFillingAll, setAiFillingAll] = useState(false);
-  const [aiError, setAiError] = useState('');
 
   function updateRow(index: number, patch: Partial<WordRow>) {
     setRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
@@ -58,46 +54,6 @@ export default function AddLessonPage() {
     });
   }
 
-  async function handleAiFillRow(index: number) {
-    const row = rows[index];
-    if (!row.simplified.trim()) return;
-    setAiError('');
-    setAiLoadingIndices((prev) => new Set(prev).add(index));
-    try {
-      const info = await fetchWordInfo(row.simplified.trim());
-      updateRow(index, {
-        simplified: info.simplified || row.simplified,
-        pinyin: info.pinyin || row.pinyin,
-        meaningKr: info.meaningKr || row.meaningKr,
-        exampleCn: info.exampleCn || row.exampleCn,
-        examplePinyin: info.examplePinyin || row.examplePinyin,
-        exampleKr: info.exampleKr || row.exampleKr,
-      });
-    } catch (err) {
-      setAiError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setAiLoadingIndices((prev) => {
-        const next = new Set(prev);
-        next.delete(index);
-        return next;
-      });
-    }
-  }
-
-  async function handleAiFillAll() {
-    setAiFillingAll(true);
-    setAiError('');
-    try {
-      for (let i = 0; i < rows.length; i++) {
-        if (!rows[i].simplified.trim()) continue;
-        if (rows[i].pinyin.trim() && rows[i].meaningKr.trim()) continue;
-        await handleAiFillRow(i);
-      }
-    } finally {
-      setAiFillingAll(false);
-    }
-  }
-
   async function handleSave() {
     const validRows = rows.filter((r) => r.simplified.trim() && r.meaningKr.trim());
     if (validRows.length === 0) {
@@ -109,9 +65,7 @@ export default function AddLessonPage() {
       alert(
         `아래 항목은 간체 자리에 한글이 들어있거나 중국어가 아닌 것 같아요:\n\n${badRows
           .map((r) => `- ${r.simplified}`)
-          .join(
-            '\n',
-          )}\n\n각 단어의 "AI로 채우기" 버튼을 눌러 올바른 간체로 자동 수정한 뒤 다시 저장해주세요.`,
+          .join('\n')}\n\n올바른 중국어 간체로 직접 고친 뒤 다시 저장해주세요.`,
       );
       return;
     }
@@ -191,34 +145,13 @@ export default function AddLessonPage() {
         ↓ 위 텍스트 줄마다 단어 입력칸으로 자동 생성
       </button>
 
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">단어 입력</h2>
-        <button
-          type="button"
-          onClick={handleAiFillAll}
-          disabled={aiFillingAll}
-          className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
-        >
-          {aiFillingAll ? '🤖 생성 중...' : '🤖 전체 AI 자동완성'}
-        </button>
-      </div>
-      {aiError && (
-        <p className="mb-3 rounded-lg bg-red-50 p-2 text-xs text-red-600">{aiError}</p>
-      )}
+      <h2 className="mb-2 text-lg font-semibold">단어 입력</h2>
       <div className="space-y-3">
         {rows.map((row, i) => (
           <div key={i} className="rounded-xl border border-gray-200 p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-sm font-medium text-gray-500">단어 {i + 1}</span>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleAiFillRow(i)}
-                  disabled={aiLoadingIndices.has(i) || !row.simplified.trim()}
-                  className="text-xs text-red-600 disabled:opacity-40"
-                >
-                  {aiLoadingIndices.has(i) ? '🤖 생성 중...' : '🤖 AI로 채우기'}
-                </button>
                 {rows.length > 1 && (
                   <button type="button" onClick={() => removeRow(i)} className="text-xs text-gray-400">
                     삭제

@@ -1,24 +1,7 @@
-import fs from 'node:fs'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import { defineConfig, type Plugin } from 'vite'
-
-if (fs.existsSync('.env.local')) {
-  process.loadEnvFile('.env.local')
-}
-
-function apiDevPlugin(): Plugin {
-  return {
-    name: 'api-dev-middleware',
-    configureServer(server) {
-      server.middlewares.use('/api/generate-word-info', async (req, res) => {
-        const mod = await server.ssrLoadModule('/api/generate-word-info.js')
-        await mod.default(req, res)
-      })
-    },
-  }
-}
+import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -26,7 +9,6 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    apiDevPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
