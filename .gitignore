@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 .gstack/
 .omc/
+KakaoTalk_*.jpg
+스크린샷*.png
