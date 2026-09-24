@@ -24,7 +24,8 @@ export default function HomePage() {
 
   return (
     <div className="p-4">
-      <h1 className="mb-4 text-2xl font-bold">중국어 단어장</h1>
+      <h1 className="text-2xl font-bold">초미녀 Bomi의 중국어 단어장</h1>
+      <p className="mb-4 text-sm text-gray-400">超级美女Bomi的中文单词本</p>
 
       <div className="mb-4 grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-red-50 p-4">

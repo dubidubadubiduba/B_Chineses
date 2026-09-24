@@ -30,8 +30,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: '중국어 단어장',
-        short_name: '단어장',
+        name: '초미녀 Bomi의 중국어 단어장',
+        short_name: 'Bomi 단어장',
         description: '화상 중국어 수업 단어 학습 및 시험',
         theme_color: '#dc2626',
         background_color: '#ffffff',
