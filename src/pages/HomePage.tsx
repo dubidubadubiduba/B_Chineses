@@ -55,11 +55,11 @@ export default function HomePage() {
             to={`/lessons/${lesson.id}`}
             className="flex items-center justify-between rounded-xl border border-gray-200 p-3"
           >
-            <div>
-              <p className="font-medium">{lesson.title || lesson.date}</p>
+            <div className="min-w-0">
+              <p className="truncate font-medium">{lesson.title || lesson.date}</p>
               <p className="text-xs text-gray-400">{lesson.date}</p>
             </div>
-            <span className="text-sm text-gray-500">
+            <span className="flex-shrink-0 whitespace-nowrap text-sm text-gray-500">
               {wordCounts?.get(lesson.id!) ?? 0}개 단어
             </span>
           </Link>

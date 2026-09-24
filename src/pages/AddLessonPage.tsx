@@ -153,7 +153,11 @@ export default function AddLessonPage() {
               <span className="text-sm font-medium text-gray-500">단어 {i + 1}</span>
               <div className="flex items-center gap-2">
                 {rows.length > 1 && (
-                  <button type="button" onClick={() => removeRow(i)} className="text-xs text-gray-400">
+                  <button
+                    type="button"
+                    onClick={() => removeRow(i)}
+                    className="whitespace-nowrap text-xs text-gray-400"
+                  >
                     삭제
                   </button>
                 )}

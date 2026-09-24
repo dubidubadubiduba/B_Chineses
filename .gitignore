@@ -26,3 +26,4 @@ dist-ssr
 .omc/
 KakaoTalk_*.jpg
 스크린샷*.png
+.recovery_tmp/

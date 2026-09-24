@@ -120,19 +120,27 @@ export default function LessonDetailPage() {
               className={`rounded-xl border p-3 ${isBad ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
             >
               {!isEditing ? (
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
                     <p className="text-lg font-medium">
                       {w.simplified} <PinyinText pinyin={w.pinyin} className="text-sm text-gray-500" />
                     </p>
                     <p className="text-sm text-gray-600">{w.meaningKr}</p>
                     {isBad && <p className="text-xs text-red-500">⚠ 간체 자리에 한글이 있는 것 같아요</p>}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => startEdit(w)} className="text-xs text-red-600">
+                  <div className="flex flex-shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(w)}
+                      className="whitespace-nowrap text-xs text-red-600"
+                    >
                       수정
                     </button>
-                    <button type="button" onClick={() => handleDeleteWord(w.id!)} className="text-xs text-gray-400">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteWord(w.id!)}
+                      className="whitespace-nowrap text-xs text-gray-400"
+                    >
                       삭제
                     </button>
                   </div>

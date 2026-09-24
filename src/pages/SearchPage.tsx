@@ -108,7 +108,7 @@ export default function SearchPage() {
               className="flex items-center justify-between"
               onClick={() => setExpandedId((id) => (id === w.id ? null : w.id!))}
             >
-              <div>
+              <div className="min-w-0">
                 <p className="text-lg font-medium">
                   {w.simplified} <PinyinText pinyin={w.pinyin} className="text-sm text-gray-500" />
                 </p>
@@ -130,7 +130,7 @@ export default function SearchPage() {
                   e.stopPropagation();
                   speakChinese(w.simplified);
                 }}
-                className="rounded-full bg-red-50 px-3 py-1 text-sm text-red-600"
+                className="flex-shrink-0 rounded-full bg-red-50 px-3 py-1 text-sm text-red-600"
               >
                 🔊
               </button>
