@@ -22,6 +22,14 @@ export async function getLegacyCounts() {
   return { lessons, words, reviewLogs };
 }
 
+function stripUndefined<T extends DocumentData>(data: T): T {
+  const result = { ...data };
+  for (const key of Object.keys(result)) {
+    if (result[key] === undefined) delete result[key];
+  }
+  return result;
+}
+
 async function commitInChunks(items: { ref: DocumentReference; data: DocumentData }[]) {
   for (const group of chunk(items, 400)) {
     const batch = writeBatch(firestore);
@@ -42,7 +50,7 @@ export async function migrateLegacyData(uid: string): Promise<void> {
     const { id: oldId, ...data } = lesson;
     const ref = doc(lessonsCol(uid));
     lessonIdMap.set(oldId!, ref.id);
-    return { ref, data };
+    return { ref, data: stripUndefined(data) };
   });
   await commitInChunks(lessonWrites);
 
@@ -53,7 +61,7 @@ export async function migrateLegacyData(uid: string): Promise<void> {
     const { id: oldId, lessonId: _oldLessonId, ...rest } = word;
     const ref = doc(wordsCol(uid));
     wordIdMap.set(oldId!, ref.id);
-    return [{ ref, data: { ...rest, lessonId: newLessonId } }];
+    return [{ ref, data: stripUndefined({ ...rest, lessonId: newLessonId }) }];
   });
   await commitInChunks(wordWrites);
 
@@ -62,7 +70,7 @@ export async function migrateLegacyData(uid: string): Promise<void> {
     if (!newWordId) return [];
     const { id: _oldId, wordId: _oldWordId, ...rest } = log;
     const ref = doc(reviewLogsCol(uid));
-    return [{ ref, data: { ...rest, wordId: newWordId } }];
+    return [{ ref, data: stripUndefined({ ...rest, wordId: newWordId }) }];
   });
   await commitInChunks(reviewLogWrites);
 

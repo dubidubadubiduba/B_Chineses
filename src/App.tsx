@@ -83,10 +83,18 @@ function MigrationGate({ uid, children }: { uid: string; children: ReactNode }) 
     });
   }, []);
 
+  const [importError, setImportError] = useState('');
+
   async function handleImport() {
     setState('running');
-    await migrateLegacyData(uid);
-    setState('done');
+    setImportError('');
+    try {
+      await migrateLegacyData(uid);
+      setState('done');
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : String(err));
+      setState('prompt');
+    }
   }
 
   function handleSkip() {
@@ -103,6 +111,9 @@ function MigrationGate({ uid, children }: { uid: string; children: ReactNode }) 
         <p className="text-sm text-gray-500">
           클라우드로 가져와서 다른 기기에서도 볼 수 있게 할까요?
         </p>
+        {importError && (
+          <p className="rounded-lg bg-red-50 p-2 text-xs text-red-600">가져오기 실패: {importError}</p>
+        )}
         <div className="flex gap-3">
           <button
             type="button"
