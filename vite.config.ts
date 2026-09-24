@@ -1,7 +1,24 @@
+import fs from 'node:fs'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
+
+if (fs.existsSync('.env.local')) {
+  process.loadEnvFile('.env.local')
+}
+
+function apiDevPlugin(): Plugin {
+  return {
+    name: 'api-dev-middleware',
+    configureServer(server) {
+      server.middlewares.use('/api/parse-vocab-image', async (req, res) => {
+        const mod = await server.ssrLoadModule('/api/parse-vocab-image.js')
+        await mod.default(req, res)
+      })
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -9,6 +26,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    apiDevPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {

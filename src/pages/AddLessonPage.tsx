@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { addLesson, bulkAddWords } from '../store';
 import { todayStr } from '../utils/srs';
 import { isLikelyValidSimplified } from '../utils/hanzi';
+import { parseVocabImage } from '../utils/parseVocabImage';
 
 interface WordRow {
   simplified: string;
@@ -28,6 +29,9 @@ export default function AddLessonPage() {
   const [rawText, setRawText] = useState('');
   const [rows, setRows] = useState<WordRow[]>([emptyRow()]);
   const [saving, setSaving] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function updateRow(index: number, patch: Partial<WordRow>) {
     setRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
@@ -52,6 +56,38 @@ export default function AddLessonPage() {
       const isPrevEmpty = prev.every((r) => Object.values(r).every((v) => !v.trim()));
       return isPrevEmpty ? parsedRows : [...prev, ...parsedRows];
     });
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setImageLoading(true);
+    setImageError('');
+    try {
+      const words = await parseVocabImage(file);
+      if (words.length === 0) {
+        setImageError('이미지에서 단어를 찾지 못했어요.');
+        return;
+      }
+      const parsedRows = words.map((w) => ({
+        simplified: w.simplified ?? '',
+        pinyin: w.pinyin ?? '',
+        meaningKr: w.meaningKr ?? '',
+        exampleCn: w.exampleCn ?? '',
+        examplePinyin: w.examplePinyin ?? '',
+        exampleKr: w.exampleKr ?? '',
+        tags: '',
+      }));
+      setRows((prev) => {
+        const isPrevEmpty = prev.every((r) => Object.values(r).every((v) => !v.trim()));
+        return isPrevEmpty ? parsedRows : [...prev, ...parsedRows];
+      });
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setImageLoading(false);
+    }
   }
 
   async function handleSave() {
@@ -140,10 +176,29 @@ export default function AddLessonPage() {
         type="button"
         onClick={parseRawTextToRows}
         disabled={!rawText.trim()}
-        className="mb-4 mt-2 w-full rounded-lg border border-red-200 bg-red-50 py-2 text-sm text-red-600 disabled:opacity-40"
+        className="mb-2 mt-2 w-full rounded-lg border border-red-200 bg-red-50 py-2 text-sm text-red-600 disabled:opacity-40"
       >
         ↓ 위 텍스트 줄마다 단어 입력칸으로 자동 생성
       </button>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageUpload}
+        className="hidden"
+      />
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={imageLoading}
+        className="mb-4 w-full rounded-lg border border-red-200 bg-red-50 py-2 text-sm text-red-600 disabled:opacity-50"
+      >
+        {imageLoading ? '📷 이미지 분석 중...' : '📷 단어장 사진으로 자동 입력'}
+      </button>
+      {imageError && (
+        <p className="mb-4 rounded-lg bg-red-50 p-2 text-xs text-red-600">{imageError}</p>
+      )}
 
       <h2 className="mb-2 text-lg font-semibold">단어 입력</h2>
       <div className="space-y-3">
