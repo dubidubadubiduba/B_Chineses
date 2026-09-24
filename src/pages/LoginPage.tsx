@@ -11,7 +11,12 @@ export default function LoginPage() {
       </div>
       <button
         type="button"
-        onClick={() => signInWithGoogle().catch((err) => console.error('로그인 실패:', err))}
+        onClick={() => {
+          alert('클릭됨: UA=' + navigator.userAgent)
+          signInWithGoogle()
+            .then(() => alert('signInWithGoogle 완료'))
+            .catch((err) => alert('로그인 실패: ' + err))
+        }}
         className="rounded-xl bg-red-600 px-6 py-3 font-medium text-white shadow"
       >
         Google로 로그인
