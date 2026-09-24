@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
-import { logDebug } from '../utils/debugLog';
 
 interface AuthState {
   user: User | null;
@@ -16,7 +15,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
-      logDebug('onAuthStateChanged: ' + (u ? u.email : 'null'));
       setUser(u);
       setLoading(false);
     });
