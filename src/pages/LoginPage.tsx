@@ -1,4 +1,5 @@
 import { signInWithGoogle } from '../auth/AuthContext';
+import { logDebug } from '../utils/debugLog';
 
 export default function LoginPage() {
   return (
@@ -12,10 +13,10 @@ export default function LoginPage() {
       <button
         type="button"
         onClick={() => {
-          alert('클릭됨: UA=' + navigator.userAgent)
+          logDebug('클릭됨: UA=' + navigator.userAgent);
           signInWithGoogle()
-            .then(() => alert('signInWithGoogle 완료'))
-            .catch((err) => alert('로그인 실패: ' + err))
+            .then(() => logDebug('signInWithGoogle 완료'))
+            .catch((err) => logDebug('로그인 실패: ' + err));
         }}
         className="rounded-xl bg-red-600 px-6 py-3 font-medium text-white shadow"
       >

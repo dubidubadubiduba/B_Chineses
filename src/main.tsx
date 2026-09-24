@@ -2,9 +2,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { logDebug } from './utils/debugLog'
 
-window.addEventListener('error', (e) => alert('에러: ' + e.message))
-window.addEventListener('unhandledrejection', (e) => alert('에러: ' + e.reason))
+window.addEventListener('error', (e) => logDebug('에러: ' + e.message))
+window.addEventListener('unhandledrejection', (e) => logDebug('에러: ' + e.reason))
 
 // One-time cleanup: a stale service worker from an earlier deploy can keep
 // serving an old cached JS bundle indefinitely. IndexedDB (legacy vocab data,
