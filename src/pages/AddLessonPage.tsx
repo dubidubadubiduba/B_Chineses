@@ -168,7 +168,7 @@ export default function AddLessonPage() {
           value={rawText}
           onChange={(e) => setRawText(e.target.value)}
           rows={5}
-          placeholder="여기에 그대로 붙여넣기 하세요 (한 줄에 한 단어씩)"
+          placeholder="여기에 그대로 붙여넣으세요 (한 줄에 한 단어씩)"
           className="mt-1 w-full rounded-lg border border-gray-300 p-2"
         />
       </label>
