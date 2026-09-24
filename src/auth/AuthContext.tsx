@@ -25,10 +25,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getRedirectResult(auth).catch((err) => {
-      console.error('Google 로그인 처리 중 오류:', err);
-    });
+    getRedirectResult(auth)
+      .then((result) => alert('getRedirectResult: ' + (result ? result.user.email : 'null')))
+      .catch((err) => alert('getRedirectResult 에러: ' + err));
     const unsubscribe = onAuthStateChanged(auth, (u) => {
+      alert('onAuthStateChanged: ' + (u ? u.email : 'null'));
       setUser(u);
       setLoading(false);
     });
