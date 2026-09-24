@@ -1,5 +1,5 @@
 export interface Lesson {
-  id?: number;
+  id?: string;
   date: string; // YYYY-MM-DD
   title?: string;
   rawText?: string;
@@ -7,8 +7,8 @@ export interface Lesson {
 }
 
 export interface Word {
-  id?: number;
-  lessonId: number;
+  id?: string;
+  lessonId: string;
   simplified: string;
   pinyin: string;
   meaningKr: string;
@@ -24,8 +24,8 @@ export interface Word {
 export type SwipeResult = 'know' | 'unknown';
 
 export interface ReviewLog {
-  id?: number;
-  wordId: number;
+  id?: string;
+  wordId: string;
   date: string; // YYYY-MM-DD
   result: SwipeResult;
 }

@@ -1,20 +1,25 @@
 import { useMemo, useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+import { useLessons, useWords } from '../store';
 import PinyinText from '../components/PinyinText';
 import { speakChinese } from '../utils/tts';
+import { isLikelyValidSimplified } from '../utils/hanzi';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [lessonFilter, setLessonFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [invalidOnly, setInvalidOnly] = useState(false);
+  const { user } = useAuth();
+  const uid = user!.uid;
 
-  const lessons = useLiveQuery(() => db.lessons.orderBy('date').reverse().toArray(), []);
-  const words = useLiveQuery(() => db.words.toArray(), []);
+  const lessons = useLessons(uid);
+  const words = useWords(uid);
 
   const lessonMap = useMemo(() => {
-    const map = new Map<number, string>();
+    const map = new Map<string, string>();
     lessons?.forEach((l) => map.set(l.id!, l.title || l.date));
     return map;
   }, [lessons]);
@@ -25,10 +30,16 @@ export default function SearchPage() {
     return Array.from(tags);
   }, [words]);
 
+  const invalidCount = useMemo(
+    () => words?.filter((w) => !isLikelyValidSimplified(w.simplified)).length ?? 0,
+    [words],
+  );
+
   const filtered = useMemo(() => {
     if (!words) return [];
     const q = query.trim().toLowerCase();
     return words.filter((w) => {
+      if (invalidOnly && isLikelyValidSimplified(w.simplified)) return false;
       if (lessonFilter && String(w.lessonId) !== lessonFilter) return false;
       if (tagFilter && !w.tags?.includes(tagFilter)) return false;
       if (!q) return true;
@@ -38,7 +49,7 @@ export default function SearchPage() {
         w.meaningKr.toLowerCase().includes(q)
       );
     });
-  }, [words, query, lessonFilter, tagFilter]);
+  }, [words, query, lessonFilter, tagFilter, invalidOnly]);
 
   return (
     <div className="p-4 pb-24">
@@ -79,11 +90,20 @@ export default function SearchPage() {
         </select>
       </div>
 
+      {invalidCount > 0 && (
+        <label className="mb-2 flex items-center gap-2 text-sm text-red-600">
+          <input type="checkbox" checked={invalidOnly} onChange={(e) => setInvalidOnly(e.target.checked)} />
+          ⚠ 간체에 한글이 섞인 단어만 보기 ({invalidCount}개)
+        </label>
+      )}
+
       <p className="mb-2 text-sm text-gray-400">{filtered.length}개 단어</p>
 
       <div className="space-y-2">
-        {filtered.map((w) => (
-          <div key={w.id} className="rounded-xl border border-gray-200 p-3">
+        {filtered.map((w) => {
+          const isBad = !isLikelyValidSimplified(w.simplified);
+          return (
+          <div key={w.id} className={`rounded-xl border p-3 ${isBad ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}>
             <div
               className="flex items-center justify-between"
               onClick={() => setExpandedId((id) => (id === w.id ? null : w.id!))}
@@ -94,6 +114,15 @@ export default function SearchPage() {
                 </p>
                 <p className="text-sm text-gray-600">{w.meaningKr}</p>
                 <p className="text-xs text-gray-400">{lessonMap.get(w.lessonId)}</p>
+                {isBad && (
+                  <Link
+                    to={`/lessons/${w.lessonId}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs text-red-500 underline"
+                  >
+                    ⚠ 한글 섞임 — 수정하러 가기
+                  </Link>
+                )}
               </div>
               <button
                 type="button"
@@ -114,7 +143,8 @@ export default function SearchPage() {
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

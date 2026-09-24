@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../db';
+import { useAuth } from '../auth/AuthContext';
+import { addLesson, bulkAddWords } from '../store';
 import { todayStr } from '../utils/srs';
+import { isLikelyValidSimplified } from '../utils/hanzi';
+import { fetchWordInfo } from '../utils/aiWordInfo';
 
 interface WordRow {
   simplified: string;
@@ -19,6 +22,8 @@ function emptyRow(): WordRow {
 
 export default function AddLessonPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const uid = user!.uid;
   const [date, setDate] = useState(todayStr());
   const [title, setTitle] = useState('');
   const [rawText, setRawText] = useState('');
@@ -53,25 +58,6 @@ export default function AddLessonPage() {
     });
   }
 
-  async function fetchWordInfo(simplified: string) {
-    const res = await fetch('/api/generate-word-info', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ simplified }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(data.error || `요청 실패 (${res.status})`);
-    }
-    return data as {
-      pinyin?: string;
-      meaningKr?: string;
-      exampleCn?: string;
-      examplePinyin?: string;
-      exampleKr?: string;
-    };
-  }
-
   async function handleAiFillRow(index: number) {
     const row = rows[index];
     if (!row.simplified.trim()) return;
@@ -80,6 +66,7 @@ export default function AddLessonPage() {
     try {
       const info = await fetchWordInfo(row.simplified.trim());
       updateRow(index, {
+        simplified: info.simplified || row.simplified,
         pinyin: info.pinyin || row.pinyin,
         meaningKr: info.meaningKr || row.meaningKr,
         exampleCn: info.exampleCn || row.exampleCn,
@@ -117,18 +104,30 @@ export default function AddLessonPage() {
       alert('최소 1개 이상의 단어(간체 + 뜻)를 입력해주세요.');
       return;
     }
+    const badRows = validRows.filter((r) => !isLikelyValidSimplified(r.simplified));
+    if (badRows.length > 0) {
+      alert(
+        `아래 항목은 간체 자리에 한글이 들어있거나 중국어가 아닌 것 같아요:\n\n${badRows
+          .map((r) => `- ${r.simplified}`)
+          .join(
+            '\n',
+          )}\n\n각 단어의 "AI로 채우기" 버튼을 눌러 올바른 간체로 자동 수정한 뒤 다시 저장해주세요.`,
+      );
+      return;
+    }
     setSaving(true);
     try {
-      const lessonId = await db.lessons.add({
+      const lessonId = await addLesson(uid, {
         date,
         title: title.trim() || undefined,
         rawText: rawText.trim() || undefined,
         createdAt: Date.now(),
       });
       const today = todayStr();
-      await db.words.bulkAdd(
+      await bulkAddWords(
+        uid,
         validRows.map((r) => ({
-          lessonId: lessonId as number,
+          lessonId,
           simplified: r.simplified.trim(),
           pinyin: r.pinyin.trim(),
           meaningKr: r.meaningKr.trim(),
