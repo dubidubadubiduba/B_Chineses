@@ -22,6 +22,7 @@ function apiDevPlugin(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
+  envPrefix: ['VITE_', 'APPCFG_'],
   plugins: [
     react(),
     tailwindcss(),

@@ -1,11 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import {
-  getRedirectResult,
-  onAuthStateChanged,
-  signInWithRedirect,
-  signOut,
-  type User,
-} from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 
 interface AuthState {
@@ -20,9 +14,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getRedirectResult(auth).catch((err) => {
-      console.error('Google 로그인 처리 중 오류:', err);
-    });
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
@@ -38,7 +29,7 @@ export function useAuth() {
 }
 
 export function signInWithGoogle() {
-  return signInWithRedirect(auth, googleProvider);
+  return signInWithPopup(auth, googleProvider);
 }
 
 export function signOutUser() {
