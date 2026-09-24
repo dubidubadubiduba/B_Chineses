@@ -131,6 +131,8 @@ export default function AddLessonPage() {
         })),
       );
       navigate(`/lessons/${lessonId}`);
+    } catch (err) {
+      alert(`저장 실패: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSaving(false);
     }

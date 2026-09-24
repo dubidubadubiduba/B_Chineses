@@ -30,6 +30,14 @@ export function reviewLogsCol(uid: string) {
   return collection(firestore, 'users', uid, 'reviewLogs');
 }
 
+function stripUndefined<T extends DocumentData>(data: T): T {
+  const result = { ...data };
+  for (const key of Object.keys(result)) {
+    if (result[key] === undefined) delete result[key];
+  }
+  return result;
+}
+
 export function chunk<T>(items: T[], size: number): T[][] {
   const chunks: T[][] = [];
   for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
@@ -98,7 +106,7 @@ export function useWords(uid: string, lessonId?: string) {
 }
 
 export async function addLesson(uid: string, data: Omit<Lesson, 'id'>): Promise<string> {
-  const ref = await addDoc(lessonsCol(uid), data);
+  const ref = await addDoc(lessonsCol(uid), stripUndefined(data));
   return ref.id;
 }
 
@@ -106,14 +114,14 @@ export async function bulkAddWords(uid: string, words: Omit<Word, 'id'>[]): Prom
   for (const group of chunk(words, 400)) {
     const batch = writeBatch(firestore);
     for (const w of group) {
-      batch.set(doc(wordsCol(uid)), w);
+      batch.set(doc(wordsCol(uid)), stripUndefined(w));
     }
     await batch.commit();
   }
 }
 
 export async function updateWord(uid: string, wordId: string, patch: Partial<Word>): Promise<void> {
-  await updateDoc(doc(wordsCol(uid), wordId), patch);
+  await updateDoc(doc(wordsCol(uid), wordId), stripUndefined(patch));
 }
 
 export async function deleteWord(uid: string, wordId: string): Promise<void> {
