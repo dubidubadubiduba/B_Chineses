@@ -12,8 +12,10 @@ function apiDevPlugin(): Plugin {
   return {
     name: 'api-dev-middleware',
     configureServer(server) {
-      server.middlewares.use('/api/parse-vocab-image', async (req, res) => {
-        const mod = await server.ssrLoadModule('/api/parse-vocab-image.js')
+      server.middlewares.use('/api', async (req, res, next) => {
+        const name = req.url?.split('?')[0]?.replace(/^\//, '')
+        if (!name || !fs.existsSync(`api/${name}.js`)) return next()
+        const mod = await server.ssrLoadModule(`/api/${name}.js`)
         await mod.default(req, res)
       })
     },

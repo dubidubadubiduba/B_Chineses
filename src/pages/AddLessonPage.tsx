@@ -5,6 +5,7 @@ import { addLesson, bulkAddWords } from '../store';
 import { todayStr } from '../utils/srs';
 import { isLikelyValidSimplified } from '../utils/hanzi';
 import { parseVocabImage } from '../utils/parseVocabImage';
+import { fetchWordInfo } from '../utils/aiWordInfo';
 
 interface WordRow {
   simplified: string;
@@ -32,6 +33,9 @@ export default function AddLessonPage() {
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [aiLoadingIndices, setAiLoadingIndices] = useState<Set<number>>(new Set());
+  const [aiFillingAll, setAiFillingAll] = useState(false);
+  const [aiError, setAiError] = useState('');
 
   function updateRow(index: number, patch: Partial<WordRow>) {
     setRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
@@ -87,6 +91,46 @@ export default function AddLessonPage() {
       setImageError(err instanceof Error ? err.message : String(err));
     } finally {
       setImageLoading(false);
+    }
+  }
+
+  async function handleAiFillRow(index: number) {
+    const row = rows[index];
+    if (!row.simplified.trim()) return;
+    setAiError('');
+    setAiLoadingIndices((prev) => new Set(prev).add(index));
+    try {
+      const info = await fetchWordInfo(row.simplified.trim());
+      updateRow(index, {
+        simplified: info.simplified || row.simplified,
+        pinyin: info.pinyin || row.pinyin,
+        meaningKr: info.meaningKr || row.meaningKr,
+        exampleCn: info.exampleCn || row.exampleCn,
+        examplePinyin: info.examplePinyin || row.examplePinyin,
+        exampleKr: info.exampleKr || row.exampleKr,
+      });
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAiLoadingIndices((prev) => {
+        const next = new Set(prev);
+        next.delete(index);
+        return next;
+      });
+    }
+  }
+
+  async function handleAiFillAll() {
+    setAiFillingAll(true);
+    setAiError('');
+    try {
+      for (let i = 0; i < rows.length; i++) {
+        if (!rows[i].simplified.trim()) continue;
+        if (rows[i].pinyin.trim() && rows[i].meaningKr.trim()) continue;
+        await handleAiFillRow(i);
+      }
+    } finally {
+      setAiFillingAll(false);
     }
   }
 
@@ -202,13 +246,34 @@ export default function AddLessonPage() {
         <p className="mb-4 rounded-lg bg-red-50 p-2 text-xs text-red-600">{imageError}</p>
       )}
 
-      <h2 className="mb-2 text-lg font-semibold">단어 입력</h2>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-lg font-semibold">단어 입력</h2>
+        <button
+          type="button"
+          onClick={handleAiFillAll}
+          disabled={aiFillingAll}
+          className="whitespace-nowrap rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+        >
+          {aiFillingAll ? '🤖 생성 중...' : '🤖 전체 AI 자동완성'}
+        </button>
+      </div>
+      {aiError && (
+        <p className="mb-3 rounded-lg bg-red-50 p-2 text-xs text-red-600">{aiError}</p>
+      )}
       <div className="space-y-3">
         {rows.map((row, i) => (
           <div key={i} className="rounded-xl border border-gray-200 p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-sm font-medium text-gray-500">단어 {i + 1}</span>
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleAiFillRow(i)}
+                  disabled={aiLoadingIndices.has(i) || !row.simplified.trim()}
+                  className="whitespace-nowrap text-xs text-red-600 disabled:opacity-40"
+                >
+                  {aiLoadingIndices.has(i) ? '🤖 생성 중...' : '🤖 AI로 채우기'}
+                </button>
                 {rows.length > 1 && (
                   <button
                     type="button"
